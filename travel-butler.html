@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全能旅行管家 — 多Agent协作系统</title>
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --bg: #f0f2f5;
+  --card: #fff;
+  --text: #1a1a2e;
+  --text2: #555;
+  --primary: #0d7377;
+  --primary-light: #14a3a8;
+  --gold: #d4a853;
+  --danger: #e74c3c;
+  --danger-light: #fdecea;
+  --success: #27ae60;
+  --success-light: #edfaf3;
+  --warning: #f39c12;
+  --warning-light: #fef9ed;
+  --border: #e8ecf1;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.25s ease;
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #0a2f35 0%, #0d4f57 40%, #0d7377 100%);
+  color: #fff;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.header-logo { font-size: 28px; }
+.header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+.header-subtitle { font-size: 12px; opacity: 0.75; }
+.header-right { display: flex; align-items: center; gap: 20px; font-size: 13px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.status-dot.online { background: #4effb4; box-shadow: 0 0 8px rgba(78,255,180,0.5); animation: pulse 2s infinite; }
+.status-dot.busy { background: #f39c12; box-shadow: 0 0 8px rgba(243,156,18,0.5); animation: pulse 0.6s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* ===== Layout ===== */
+.app-container { display: flex; gap: 20px; padding: 20px 24px; max-width: 1440px; margin: 0 auto; min-height: calc(100vh - 68px); }
+.sidebar { width: 260px; flex-shrink: 0; }
+.main-content { flex: 1; min-width: 0; }
+
+/* ===== Agent Cards ===== */
+.agent-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid #ccc;
+  transition: all var(--transition);
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.agent-card.active { border-left-color: var(--success); }
+.agent-card.thinking { border-left-color: var(--warning); }
+.agent-card.idle { border-left-color: #bbb; }
+.agent-card.error { border-left-color: var(--danger); }
+.agent-card .agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.agent-card .agent-icon { font-size: 22px; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.agent-card .agent-icon.a1 { background: #e8f4fd; } /* 偏好解析 */
+.agent-card .agent-icon.a2 { background: #fef3e8; } /* 行程拓扑 */
+.agent-card .agent-icon.a3 { background: #edfaf3; } /* 实时保障 */
+.agent-card .agent-icon.a4 { background: #fdecea; } /* 应急重规划 */
+.agent-card .agent-name { font-weight: 600; font-size: 14px; }
+.agent-card .agent-status-text { font-size: 11px; color: var(--text2); }
+.agent-card .agent-detail { font-size: 11px; color: var(--text2); margin-top: 4px; line-height: 1.4; }
+.agent-badge {
+  display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  font-weight: 600; letter-spacing: 0.5px;
+}
+.agent-badge.ready { background: #edfaf3; color: #27ae60; }
+.agent-badge.working { background: #fef9ed; color: #f39c12; animation: pulse 0.8s infinite; }
+.agent-badge.waiting { background: #f5f5f5; color: #999; }
+
+.thinking-bar {
+  height: 2px; background: #eee; border-radius: 2px; margin-top: 10px; overflow: hidden;
+}
+.thinking-bar.active { background: #ffe0c0; }
+.thinking-bar.active::after {
+  content: ''; display: block; width: 30%; height: 100%;
+  background: var(--warning);
+  border-radius: 2px;
+  animation: thinking-slide 0.8s infinite ease-in-out;
+}
+@keyframes thinking-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(430%); }
+}
+
+/* ===== Tabs ===== */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border-radius: var(--radius); padding: 4px; box-shadow: var(--shadow); }
+.tab-btn {
+  flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); color: var(--text2);
+}
+.tab-btn.active { background: var(--primary); color: #fff; }
+.tab-btn:hover:not(.active) { background: #f5f5f5; }
+
+/* ===== Panels ===== */
+.panel { display: none; }
+.panel.active { display: block; }
+.card {
+  background: var(--card); border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--shadow); margin-bottom: 20px;
+}
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+/* ===== Form ===== */
+.form-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 150px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 4px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit; transition: border var(--transition); outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary-light); }
+.form-group textarea { resize: vertical; min-height: 60px; }
+.btn {
+  padding: 10px 24px; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13,115,119,0.3); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #c0392b; transform: translateY(-1px); }
+.btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-outline:hover { background: #f0fafa; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+/* ===== Itinerary Timeline ===== */
+.itinerary-view { position: relative; }
+.day-block {
+  background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  border: 1.5px solid var(--border); transition: all var(--transition);
+  position: relative;
+}
+.day-block.affected { border-color: var(--danger); background: var(--danger-light); }
+.day-block.replanned { border-color: var(--success); background: var(--success-light); }
+.day-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.day-number {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+  flex-shrink: 0;
+}
+.day-block.affected .day-number { background: var(--danger); }
+.day-block.replanned .day-number { background: var(--success); }
+.day-title { font-weight: 700; font-size: 15px; }
+.day-date { font-size: 12px; color: var(--text2); }
+
+.nodes-container { display: flex; flex-wrap: wrap; gap: 10px; position: relative; }
+.node {
+  background: #f8f9fb; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; font-size: 12px; min-width: 140px; flex: 1;
+  transition: all 0.4s ease; position: relative;
+}
+.node:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.node.conflict {
+  border-color: var(--danger); background: var(--danger-light);
+  animation: shake 0.5s ease;
+}
+.node.resolved { border-color: var(--success); background: var(--success-light); }
+.node .node-time { font-weight: 700; color: var(--primary); font-size: 11px; }
+.node .node-name { font-weight: 600; margin: 4px 0 2px; }
+.node .node-type { font-size: 10px; color: var(--text2); }
+.node .node-status {
+  position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%;
+  font-size: 10px; display: flex; align-items: center; justify-content: center;
+}
+.node .node-status.ok { background: var(--success); color: #fff; }
+.node .node-status.warn { background: var(--danger); color: #fff; animation: pulse 0.6s infinite; }
+
+.node-arrow {
+  display: flex; align-items: center; color: var(--primary-light); font-size: 18px;
+  flex-shrink: 0; align-self: center;
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-5px);}
+  40%{transform:translateX(5px);}
+  60%{transform:translateX(-3px);}
+  80%{transform:translateX(3px);}
+}
+
+/* ===== SVG Connections ===== */
+.connections-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.connections-svg line { stroke: #d0d8e0; stroke-width: 2; stroke-dasharray: 6 3; }
+.connections-svg line.conflict-line { stroke: var(--danger); stroke-width: 2.5; stroke-dasharray: 4 2; animation: dash-march 0.5s linear infinite; }
+.connections-svg line.resolved-line { stroke: var(--success); stroke-width: 2.5; }
+@keyframes dash-march { to { stroke-dashoffset: -12; } }
+
+/* ===== Emergency Panel ===== */
+.emergency-scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.scenario-btn {
+  padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: #fff; cursor: pointer; text-align: left; transition: all var(--transition);
+  font-size: 13px; font-family: inherit;
+}
+.scenario-btn:hover { border-color: var(--danger); box-shadow: var(--shadow); }
+.scenario-btn .scenario-icon { font-size: 20px; margin-bottom: 4px; }
+.scenario-btn .scenario-name { font-weight: 600; }
+
+/* ===== Re-planning Log ===== */
+.log-container {
+  background: #1a1a2e; color: #e0e0e0; border-radius: var(--radius-sm); padding: 16px;
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; font-size: 12px;
+  max-height: 300px; overflow-y: auto; line-height: 1.8;
+}
+.log-entry { display: flex; gap: 8px; }
+.log-entry .log-time { color: #888; flex-shrink: 0; }
+.log-entry .log-agent { color: #f39c12; flex-shrink: 0; min-width: 70px; }
+.log-entry .log-msg { color: #ddd; }
+.log-entry .log-warn { color: #e74c3c; }
+.log-entry .log-ok { color: #4effb4; }
+
+/* ===== Price Monitor ===== */
+.price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.price-card {
+  background: #f8f9fb; border-radius: var(--radius-sm); padding: 14px;
+  border: 1.5px solid var(--border);
+}
+.price-card .price-title { font-size: 11px; color: var(--text2); }
+.price-card .price-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+.price-card .price-trend { font-size: 11px; }
+.price-card .price-trend.down { color: var(--success); }
+.price-card .price-trend.up { color: var(--danger); }
+
+/* ===== Comparison View ===== */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.compare-col { background: #f8f9fb; border-radius: var(--radius-sm); padding: 16px; }
+.compare-col.old { border-left: 3px solid var(--danger); }
+.compare-col.new { border-left: 3px solid var(--success); }
+.compare-col h4 { font-size: 13px; margin-bottom: 10px; }
+.compare-item { font-size: 12px; padding: 6px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+.compare-item .del { text-decoration: line-through; color: #999; }
+.compare-item .add { color: var(--success); font-weight: 600; }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .app-container { flex-direction: column; padding: 12px; }
+  .sidebar { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .agent-card { margin-bottom: 0; }
+  .compare-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: var(--radius-sm);
+  color: #fff; font-weight: 600; font-size: 13px; z-index: 1000;
+  animation: slideIn 0.3s ease; box-shadow: var(--shadow-lg);
+}
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.warning { background: var(--warning); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ===== Modal Overlay ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.modal {
+  background: #fff; border-radius: var(--radius); padding: 28px; max-width: 700px; width: 90%;
+  max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+}
+.modal h3 { margin-bottom: 16px; }
+@keyframes fadeIn { from { opacity: 0; } }
+
+/* ===== Stats Bar ===== */
+.stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-card {
+  background: var(--card); border-radius: var(--radius-sm); padding: 14px 18px;
+  box-shadow: var(--shadow); text-align: center; flex: 1; min-width: 100px;
+}
+.stat-card .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 11px; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-left">
+    <span class="header-logo">🌍</span>
+    <div>
+      <h1>全能旅行管家</h1>
+      <div class="header-subtitle">Multi-Agent Collaborative Travel System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span><span class="status-dot online"></span>系统在线</span>
+    <span>Token 消耗: <strong id="tokenCount">0</strong></span>
+    <span>推理耗时: <strong id="inferTime">0ms</strong></span>
+  </div>
+</header>
+
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="app-container">
+
+  <!-- SIDEBAR: 4个Agent状态 -->
+  <aside class="sidebar">
+    <div class="agent-card active" id="agent1-card">
+      <div class="agent-header">
+        <div class="agent-icon a1">🔍</div>
+        <div>
+          <div class="agent-name">偏好解析Agent</div>
+          <div class="agent-status-text"><span class="agent-badge ready" id="agent1-badge">就绪</span></div>
+        </div>
+      </div>
+      <div class="agent-detail">将模糊描述转化为行程刚性约束与柔性偏好权重</div>
+      <div class="thinking-bar" id="agent1-bar"></div>
+    </div>
+
+    <div class="agent-card active" id="agent2-card">
+      <div class="agent-header">
+        <div class="agent-icon a2">🗺️</div>
+        <div>
+          <div class="agent-name">行程拓扑生成Agent</div>
+          <div class="agent-status-text"><span class="agent-badge ready" id="agent2-badge">就绪</span></div>
+        </div>
+      </div>
+      <div class="agent-detail">多目标优化生成多日行程的有向无环图网络(DAG)</div>
+      <div class="thinking-bar" id="agent2-bar"></div>
+    </div>
+
+    <div class="agent-card active" id="agent3-card">
+      <div class="agent-header">
+        <div class="agent-icon a3">💰</div>
+        <div>
+          <div class="agent-name">实时保障与议价Agent</div>
+          <div class="agent-status-text"><span class="agent-badge ready" id="agent3-badge">就绪</span></div>
+        </div>
+      </div>
+      <div class="agent-detail">并行监控价格 + 生成谈判话术辅助升房/延迟退房</div>
+      <div class="thinking-bar" id="agent3-bar"></div>
+    </div>
+
+    <div class="agent-card active" id="agent4-card">
+      <div class="agent-header">
+        <div class="agent-icon a4">🚨</div>
+        <div>
+          <div class="agent-name">应急重规划Agent</div>
+          <div class="agent-status-text"><span class="agent-badge ready" id="agent4-badge">就绪</span></div>
+        </div>
+      </div>
+      <div class="agent-detail">BFS标记受影响节点 → 闭环优化 → 生成损失最小方案</div>
+      <div class="thinking-bar" id="agent4-bar"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('plan')">📋 行程规划</button>
+      <button class="tab-btn" onclick="switchTab('emergency')">🚨 应急重规划</button>
+      <button class="tab-btn" onclick="switchTab('price')">💳 价格保障</button>
+    </div>
+
+    <!-- ===== TAB 1: 行程规划 ===== -->
+    <div class="panel active" id="panel-plan">
+
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat-card"><div class="stat-value" id="stat-days">3</div><div class="stat-label">行程天数</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-nodes">14</div><div class="stat-label">行程节点</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-constraints">12</div><div class="stat-label">约束条件</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-score">94</div><div class="stat-label">综合匹配度</div></div>
+      </div>
+
+      <!-- 偏好输入 -->
+      <div class="card">
+        <div class="card-title">📝 旅行偏好</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>目的地</label>
+            <input type="text" id="dest" value="北京" placeholder="输入目的地">
+          </div>
+          <div class="form-group">
+            <label>出行日期</label>
+            <input type="date" id="startDate" value="2026-05-15">
+          </div>
+          <div class="form-group">
+            <label>天数</label>
+            <select id="days"><option>3天</option><option>5天</option><option>7天</option></select>
+          </div>
+          <div class="form-group">
+            <label>出行人群</label>
+            <select id="group"><option>带父母</option><option>情侣出游</option><option>独自旅行</option><option>亲子家庭</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>节奏偏好</label>
+            <select id="pace"><option>舒缓悠闲</option><option>适中</option><option>紧凑充实</option></select>
+          </div>
+          <div class="form-group">
+            <label>兴趣偏好</label>
+            <select id="interest"><option>人文历史</option><option>自然风光</option><option>美食探店</option><option>都市时尚</option></select>
+          </div>
+          <div class="form-group">
+            <label>预算等级</label>
+            <select id="budget"><option>舒适型</option><option>经济型</option><option>豪华型</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generatePlan()">✨ 智能生成行程</button>
+        <span style="font-size:12px;color:var(--text2);margin-left:12px;" id="genHint">点击后将模拟四Agent协同工作流程</span>
+      </div>
+
+      <!-- 生成的行程 -->
+      <div class="card">
+        <div class="card-title">🗓️ 生成行程 — 有向无环图(DAG)视图</div>
+        <div class="itinerary-view" id="itinerary"></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: 应急重规划 ===== -->
+    <div class="panel" id="panel-emergency">
+
+      <div class="card">
+        <div class="card-title">⚠️ 模拟突发事件</div>
+        <div class="emergency-scenarios">
+          <button class="scenario-btn" onclick="triggerEmergency('flight')">
+            <div class="scenario-icon">🛫</div>
+            <div class="scenario-name">航班延误 3小时</div>
+            <div style="font-size:11px;color:var(--text2)">Day 1 到达推迟 → 连锁影响</div>
+          </button>
+          <button class="scenario-btn" onclick="triggerEmergency('weather')">
+            <div class="scenario-icon">🌧️</div>
+            <div class="scenario-name">极端天气预警</div>
+            <div style="font-size:11px;color:var(--text2)">户外景点关闭 → 室内替代</div>
+          </button>
+          <button class="scenario-btn" onclick="triggerEmergency('closed')">
+            <div class="scenario-icon">🏛️</div>
+            <div class="scenario-name">景点临时闭馆</div>
+            <div style="font-size:11px;color:var(--text2)">故宫维修 → 重新调度</div>
+          </button>
+          <button class="scenario-btn" onclick="triggerEmergency('lost')">
+            <div class="scenario-icon">🪪</div>
+            <div class="scenario-name">证件丢失</div>
+            <div style="font-size:11px;color:var(--text2)">酒店入住受阻 → 应急处理</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 推理日志 -->
+      <div class="card">
+        <div class="card-title">🧠 应急重规划Agent — 长链推理日志</div>
+        <div class="log-container" id="logContainer">
+          <div style="color:#888;">等待突发事件触发…</div>
+        </div>
+      </div>
+
+      <!-- 对比视图 -->
+      <div class="card" id="compareCard" style="display:none;">
+        <div class="card-title">📊 方案对比：原始 vs 重规划</div>
+        <div class="compare-grid" id="compareGrid"></div>
+      </div>
+
+      <!-- 受影响行程 -->
+      <div class="card" id="affectedItineraryCard" style="display:none;">
+        <div class="card-title">🗓️ 重规划后的行程</div>
+        <div class="itinerary-view" id="affectedItinerary"></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: 价格保障 ===== -->
+    <div class="panel" id="panel-price">
+      <div class="card">
+        <div class="card-title">💳 实时价格监控 & 议价</div>
+        <div class="price-grid" id="priceGrid"></div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-outline btn-sm" onclick="refreshPrices()">🔄 刷新价格</button>
+          <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="togglePriceMonitor()" id="monitorBtn">▶ 开启实时监控</button>
+        </div>
+      </div>
+
+      <div class="card" id="negotiationCard" style="display:none;">
+        <div class="card-title">🤝 议价Agent — 谈判话术生成</div>
+        <div class="log-container" id="negotiationLog" style="max-height:200px;"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toastContainer"></div>
+
+<script>
+// ============================================================
+// 数据模型
+// ============================================================
+
+// 初始行程数据 (Day节点 = 有向无环图中的节点)
+const originalPlan = {
+  days: [
+    {
+      id: 1, date: '5月15日 周六', title: '抵达北京 · 初探古都',
+      nodes: [
+        { id: 'n1', time: '14:00', name: '首都机场T3', type: '✈️ 航班到达', deps: [] },
+        { id: 'n2', time: '15:30', name: '北京饭店', type: '🏨 办理入住', deps: ['n1'] },
+        { id: 'n3', time: '17:00', name: '王府井大街', type: '🚶 轻松漫步', deps: ['n2'] },
+        { id: 'n4', time: '18:30', name: '大董烤鸭(王府井店)', type: '🍽️ 晚餐·米其林', deps: ['n3'] },
+      ]
+    },
+    {
+      id: 2, date: '5月16日 周日', title: '皇城中轴线',
+      nodes: [
+        { id: 'n5', time: '08:00', name: '故宫博物院', type: '🏛️ 世界遗产', deps: [] },
+        { id: 'n6', time: '12:30', name: '景山公园', type: '🌿 登高俯瞰', deps: ['n5'] },
+        { id: 'n7', time: '14:00', name: '宏源南门涮肉', type: '🍲 午餐·老字号', deps: ['n6'] },
+        { id: 'n8', time: '16:00', name: '南锣鼓巷', type: '🛍️ 胡同文化', deps: ['n7'] },
+        { id: 'n9', time: '19:00', name: '什刹海', type: '🌅 湖边夜景', deps: ['n8'] },
+      ]
+    },
+    {
+      id: 3, date: '5月17日 周一', title: '长城壮游',
+      nodes: [
+        { id: 'n10', time: '06:30', name: '酒店出发', type: '🚗 包车', deps: [] },
+        { id: 'n11', time: '08:00', name: '八达岭长城', type: '🏯 世界遗产', deps: ['n10'] },
+        { id: 'n12', time: '13:00', name: '长城脚下农家菜', type: '🥘 午餐', deps: ['n11'] },
+        { id: 'n13', time: '15:00', name: '明十三陵', type: '🏛️ 皇家陵寝', deps: ['n12'] },
+        { id: 'n14', time: '18:30', name: '回程·酒店', type: '🚗 返程', deps: ['n13'] },
+      ]
+    }
+  ]
+};
+
+// 当前行程 (可变)
+let currentPlan = JSON.parse(JSON.stringify(originalPlan));
+let priceMonitorInterval = null;
+let totalTokens = 0;
+
+// ============================================================
+// 渲染函数
+// ============================================================
+
+function renderItinerary(containerId, plan, highlightConflicts = []) {
+  const container = document.getElementById(containerId);
+  let html = '';
+
+  plan.days.forEach((day, di) => {
+    const affected = highlightConflicts.some(c => c.dayId === day.id);
+    const replanned = highlightConflicts.some(c => c.dayId === day.id && c.resolved);
+    let dayClass = '';
+    if (replanned) dayClass = 'replanned';
+    else if (affected) dayClass = 'affected';
+
+    html += `<div class="day-block ${dayClass}">`;
+    html += `<div class="day-header">`;
+    html += `<div class="day-number">D${day.id}</div>`;
+    html += `<div><div class="day-title">${day.title}</div><div class="day-date">${day.date}</div></div>`;
+    html += `</div>`;
+
+    html += `<div class="nodes-container">`;
+    day.nodes.forEach((node, ni) => {
+      const isConflict = highlightConflicts.some(c => c.nodeId === node.id);
+      const isResolved = highlightConflicts.some(c => c.nodeId === node.id && c.resolved);
+      let nodeClass = '';
+      if (isResolved) nodeClass = 'resolved';
+      else if (isConflict) nodeClass = 'conflict';
+
+      if (ni > 0) {
+        html += `<div class="node-arrow">→</div>`;
+      }
+
+      html += `<div class="node ${nodeClass}" id="node-${node.id}">`;
+      if (isConflict) {
+        html += `<div class="node-status warn">!</div>`;
+      } else if (isResolved) {
+        html += `<div class="node-status ok">✓</div>`;
+      }
+      html += `<div class="node-time">${node.time}</div>`;
+      html += `<div class="node-name">${node.name}</div>`;
+      html += `<div class="node-type">${node.type}</div>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderPriceCards() {
+  const grid = document.getElementById('priceGrid');
+  const items = [
+    { title: '机票 北京→目的地', price: '¥1,280', trend: 'down', change: '-¥120 (2h前)' },
+    { title: '北京饭店 · 豪华大床房', price: '¥880/晚', trend: 'down', change: '-¥65 (30min前)' },
+    { title: '故宫门票 · 含珍宝馆', price: '¥60', trend: 'up', change: '+¥10 (即将售罄)' },
+    { title: '八达岭长城 · 直通车', price: '¥180', trend: 'down', change: '-¥30 (新上架)' },
+  ];
+  grid.innerHTML = items.map(i => `
+    <div class="price-card">
+      <div class="price-title">${i.title}</div>
+      <div class="price-value">${i.price}</div>
+      <div class="price-trend ${i.trend}">${i.change}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// Agent动画
+// ============================================================
+
+function setAgentState(agentNum, state, detail = '') {
+  const card = document.getElementById(`agent${agentNum}-card`);
+  const badge = document.getElementById(`agent${agentNum}-badge`);
+  const bar = document.getElementById(`agent${agentNum}-bar`);
+
+  card.className = `agent-card ${state}`;
+
+  if (state === 'thinking') {
+    badge.className = 'agent-badge working';
+    badge.textContent = '推理中…';
+    bar.classList.add('active');
+  } else if (state === 'active') {
+    badge.className = 'agent-badge ready';
+    badge.textContent = '就绪';
+    bar.classList.remove('active');
+  } else if (state === 'error') {
+    badge.className = 'agent-badge waiting';
+    badge.textContent = '等待';
+    bar.classList.remove('active');
+  }
+
+  if (detail) {
+    card.querySelector('.agent-detail').textContent = detail;
+  }
+}
+
+function addTokens(n) {
+  totalTokens += n;
+  document.getElementById('tokenCount').textContent = totalTokens.toLocaleString();
+}
+
+// ============================================================
+// 日志系统
+// ============================================================
+
+function log(agent, msg, type = 'info') {
+  const container = document.getElementById('logContainer');
+  if (container.querySelector('div[style]')) container.innerHTML = '';
+
+  const now = new Date();
+  const time = now.toLocaleTimeString('zh-CN', { hour12: false });
+  let msgClass = 'log-msg';
+  if (type === 'warn') msgClass = 'log-warn';
+  if (type === 'ok') msgClass = 'log-ok';
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <span class="log-time">[${time}]</span>
+    <span class="log-agent">[${agent}]</span>
+    <span class="${msgClass}">${msg}</span>
+  `;
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ============================================================
+// Tab切换
+// ============================================================
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+
+  if (name === 'price') {
+    renderPriceCards();
+  }
+}
+
+// ============================================================
+// 行程生成 (模拟四Agent协同)
+// ============================================================
+
+async function generatePlan() {
+  const dest = document.getElementById('dest').value;
+  const startDate = document.getElementById('startDate').value;
+  const days = document.getElementById('days').value;
+  const group = document.getElementById('group').value;
+  const pace = document.getElementById('pace').value;
+  const interest = document.getElementById('interest').value;
+  const budget = document.getElementById('budget').value;
+
+  const hint = document.getElementById('genHint');
+  hint.textContent = '⏳ Agent协作中…';
+
+  // 重置
+  totalTokens = 0;
+  document.getElementById('tokenCount').textContent = '0';
+  document.getElementById('inferTime').textContent = '0ms';
+  currentPlan = JSON.parse(JSON.stringify(originalPlan));
+  document.getElementById('stat-days').textContent = days === '3天' ? '3' : days === '5天' ? '5' : '7';
+  document.getElementById('stat-nodes').textContent = days === '3天' ? '14' : '22';
+  document.getElementById('stat-constraints').textContent = '12';
+  document.getElementById('stat-score').textContent = '94';
+
+  const start = performance.now();
+
+  // --- Agent 1: 偏好解析 ---
+  setAgentState(1, 'thinking', '正在解析偏好权重…');
+  log('偏好解析Agent', `输入: 目的地=${dest}, 人群=${group}, 节奏=${pace}, 兴趣=${interest}, 预算=${budget}`, 'info');
+  await sleep(600);
+  addTokens(420);
+  log('偏好解析Agent', `刚性约束: 日出游≤6h, 午休≥1h, 爬升≤500m, 单日步行≤8km`, 'info');
+  await sleep(400);
+  addTokens(380);
+  log('偏好解析Agent', `柔性权重: 人文景点0.85, 餐饮品质0.72, 购物0.35, 夜间活动0.28`, 'info');
+  await sleep(300);
+  setAgentState(1, 'active', `解析完成: 提取${days === '3天' ? '8' : '14'}项约束, ${days === '3天' ? '5' : '9'}组偏好权重`);
+
+  // --- Agent 2: 行程拓扑生成 ---
+  setAgentState(2, 'thinking', '正在构建DAG拓扑…');
+  await sleep(500);
+  addTokens(1200);
+  log('行程拓扑Agent', `空间距离矩阵已加载 (${dest} POI数据库, 237个候选节点)`, 'info');
+  await sleep(600);
+  addTokens(1500);
+  log('行程拓扑Agent', '运行多目标优化: NSGA-II 种群=200, 迭代=50代', 'info');
+  await sleep(400);
+  log('行程拓扑Agent', '第20代: 帕累托前沿 14个非支配解, 适应度收敛至 0.94', 'info');
+  await sleep(300);
+  log('行程拓扑Agent', '验证约束: ✓ 开放时间兼容 ✓ 体力消耗曲线合理 ✓ 餐食间隔≥3h', 'ok');
+  await sleep(500);
+  setAgentState(2, 'active', 'DAG生成完成: 14个节点, 18条有向边, 无环验证通过');
+  addTokens(800);
+
+  // --- Agent 3: 实时保障 ---
+  setAgentState(3, 'thinking', '并行查询价格…');
+  await sleep(400);
+  addTokens(650);
+  log('实时保障Agent', '并行查询: Amadeus机票API ✓, Booking酒店API ✓, 景区票务API ✓', 'ok');
+  await sleep(300);
+  log('实时保障Agent', '机票: 当前¥1,280 (低于均值¥1,520), 建议锁定', 'ok');
+  log('实时保障Agent', '酒店: 北京饭店豪华大床房 ¥880/晚, 含免费取消', 'ok');
+  await sleep(300);
+  addTokens(400);
+  log('实时保障Agent', '谈判话术已生成: "您好,我们带父母出行,能否申请高层安静房间?…"', 'info');
+  setAgentState(3, 'active', '价格监控已启动, 3项服务已锁定最优价格');
+
+  // --- Agent 4: 检查 ---
+  setAgentState(4, 'error');
+
+  // 渲染行程
+  renderItinerary('itinerary', currentPlan);
+
+  const elapsed = (performance.now() - start).toFixed(0);
+  document.getElementById('inferTime').textContent = elapsed + 'ms';
+  document.getElementById('stat-score').textContent = '94';
+
+  // Toast
+  showToast('行程生成完成！四Agent协同耗时 ' + (elapsed/1000).toFixed(1) + 's', 'success');
+  hint.textContent = `✅ 完成，消耗 ${totalTokens.toLocaleString()} tokens`;
+
+  // 更新价格
+  if (document.getElementById('panel-price').classList.contains('active')) {
+    renderPriceCards();
+  }
+}
+
+// ============================================================
+// 应急重规划 (核心功能)
+// ============================================================
+
+async function triggerEmergency(type) {
+  // 切换到应急Tab
+  switchTab('emergency');
+
+  // 清空
+  const logContainer = document.getElementById('logContainer');
+  logContainer.innerHTML = '';
+  document.getElementById('compareCard').style.display = 'none';
+  document.getElementById('affectedItineraryCard').style.display = 'none';
+
+  // 重置plan
+  currentPlan = JSON.parse(JSON.stringify(originalPlan));
+
+  const start = performance.now();
+  totalTokens = 0;
+  document.getElementById('tokenCount').textContent = '0';
+
+  // --- 激活Agent 4 ---
+  setAgentState(4, 'thinking', '突发事件触发 → BFS遍历中…');
+  log('应急重规划Agent', '══════ 突发事件触发 ══════', 'warn');
+
+  const scenarios = {
+    flight: {
+      name: '航班延误 3小时',
+      desc: 'Day 1 首都机场T3到达时间从14:00推迟至17:00',
+      affectedNodes: ['n1','n2','n3','n4'],
+      chain: [
+        { agent: '应急重规划Agent', msg: '接收事件: 航班CA1234 延误, ETA 14:00 → 17:00 (+3h)', type: 'warn' },
+        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n1(航班到达)为起点, 沿DAG出边传播', type: 'info' },
+        { agent: '应急重规划Agent', msg: '第1层→ n2(酒店入住): 原15:30 → 冲突! 酒店最晚入住22:00, 暂不受影响但紧邻时间窗', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '第2层→ n3(王府井): 原17:00 → 严重冲突! 到达时间将推迟至18:30+', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '第3层→ n4(大董烤鸭): 原18:30 → 严重冲突! 预订保留至18:45, 超时将取消+扣除¥200定金', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '闭环优化启动: 搜索可行重规划路径…', type: 'info' },
+        { agent: '应急重规划Agent', msg: '方案A: 联系大董推迟至19:30 (需确认有空位) — 成本¥0', type: 'info' },
+        { agent: '应急重规划Agent', msg: '方案B: 取消大董, 改酒店中餐厅 — 损失定金¥200', type: 'info' },
+        { agent: '应急重规划Agent', msg: '方案C: 机场直达酒店→点客房送餐 — 体验降级但可控', type: 'info' },
+        { agent: '应急重规划Agent', msg: '━━━ 驱动议价Agent ━━━', type: 'info' },
+        { agent: '议价Agent', msg: '生成话术: "您好, 我是大董烤鸭今晚的订位客人, 航班CA1234延误推送至17:00, 能否将预订保留至19:30? 我们愿意支付延迟保证金"', type: 'info' },
+        { agent: '议价Agent', msg: '生成话术(酒店): "…航班延误, 最晚入住时间从18:00推迟至20:00, 请保留房间"', type: 'info' },
+        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '✓ 方案A采纳: 大董推迟至19:30(已确认), 王府井压缩至30min散步, 酒店入住顺延至18:00', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '总损失: ¥0 (仅体验略有下降), 全链路可行性: 92%', type: 'ok' },
+      ],
+      newPlanModifier: (plan) => {
+        plan.days[0].nodes[0].time = '17:00';
+        plan.days[0].nodes[1].time = '18:00';
+        plan.days[0].nodes[2].time = '18:45';
+        plan.days[0].nodes[3].time = '19:30';
+        plan.days[0].title = '抵达北京 · 航班延误(已重规划)';
+        return plan;
+      },
+      conflicts: [
+        { dayId: 1, nodeId: 'n1', resolved: true },
+        { dayId: 1, nodeId: 'n2', resolved: true },
+        { dayId: 1, nodeId: 'n3', resolved: true },
+        { dayId: 1, nodeId: 'n4', resolved: true },
+      ]
+    },
+    weather: {
+      name: '极端天气预警',
+      desc: 'Day 3 暴雨预警, 八达岭长城关闭',
+      affectedNodes: ['n10','n11','n12','n13','n14'],
+      chain: [
+        { agent: '应急重规划Agent', msg: '接收事件: 延庆区暴雨橙色预警, 八达岭长城8:00起关闭', type: 'warn' },
+        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n11(八达岭长城)为起点双向传播', type: 'info' },
+        { agent: '应急重规划Agent', msg: '上游→ n10(酒店出发): 包车需取消或改道', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '下游→ n12(农家菜): 失去前置节点, 可保留但需调整时间', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '下游→ n13(明十三陵): 户外景点同样受暴雨影响, 需替代', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '下游→ n14(返程): 时间结构完全改变', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '闭环优化: 搜索Day3室内替代方案…', type: 'info' },
+        { agent: '应急重规划Agent', msg: '匹配: 国家博物馆(室内, 人文权重0.85, 距酒店8km)', type: 'info' },
+        { agent: '应急重规划Agent', msg: '匹配: 798艺术区(半室内, 现代艺术权重0.62)', type: 'info' },
+        { agent: '应急重规划Agent', msg: '匹配: 全聚德烤鸭(室内午餐, 替代农家菜)', type: 'info' },
+        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '✓ Day3 调整为: 国家博物馆(8:00-12:00) → 全聚德(12:30) → 798艺术区(14:30) → 三里屯晚餐(18:00)', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '包车改道(费用增加¥80), 长城门票自动退款¥40, 总损失<¥50', type: 'ok' },
+      ],
+      newPlanModifier: (plan) => {
+        plan.days[2].title = '暴雨替代方案(已重规划)';
+        plan.days[2].nodes = [
+          { id: 'n10', time: '08:00', name: '酒店出发', type: '🚗 改道市区', deps: [] },
+          { id: 'n11-new', time: '08:30', name: '国家博物馆', type: '🏛️ 室内·世界级', deps: ['n10'] },
+          { id: 'n12-new', time: '12:30', name: '全聚德(前门店)', type: '🦆 午餐·老字号', deps: ['n11-new'] },
+          { id: 'n13-new', time: '14:30', name: '798艺术区', type: '🎨 半室内·现代艺术', deps: ['n12-new'] },
+          { id: 'n14-new', time: '18:00', name: '三里屯太古里', type: '🍽️ 晚餐', deps: ['n13-new'] },
+        ];
+        return plan;
+      },
+      conflicts: [
+        { dayId: 3, nodeId: 'n10', resolved: true },
+        { dayId: 3, nodeId: 'n11', resolved: true },
+        { dayId: 3, nodeId: 'n12', resolved: true },
+        { dayId: 3, nodeId: 'n13', resolved: true },
+        { dayId: 3, nodeId: 'n14', resolved: true },
+      ]
+    },
+    closed: {
+      name: '景点临时闭馆',
+      desc: 'Day 2 故宫紧急闭馆维修',
+      affectedNodes: ['n5','n6'],
+      chain: [
+        { agent: '应急重规划Agent', msg: '接收事件: 故宫博物院临时闭馆(建筑维修), 通知时间: 前日22:00', type: 'warn' },
+        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n5(故宫)为起点传播', type: 'info' },
+        { agent: '应急重规划Agent', msg: '第1层→ n6(景山公园): 失去前置节点, 时间可独立调整', type: 'warn' },
+        { agent: '应急重规划Agent', msg: '第2层→ n7(涮肉): 非直接依赖故宫, 仅需重新排布上午', type: 'info' },
+        { agent: '应急重规划Agent', msg: '闭环优化: 搜索同区域人文替代…', type: 'info' },
+        { agent: '应急重规划Agent', msg: '候选: 天坛(同为人文世界遗产, 权重0.88), 雍和宫(权重0.76)', type: 'info' },
+        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '✓ 故宫→天坛替代, 景山不变, 全链路维持, 损失¥0', type: 'ok' },
+      ],
+      newPlanModifier: (plan) => {
+        plan.days[1].title = '皇城中轴线(故宫闭馆·已重规划)';
+        plan.days[1].nodes[0] = { id: 'n5-new', time: '08:00', name: '天坛公园', type: '🏛️ 世界遗产·替代码', deps: [] };
+        return plan;
+      },
+      conflicts: [
+        { dayId: 2, nodeId: 'n5', resolved: true },
+        { dayId: 2, nodeId: 'n6', resolved: true },
+      ]
+    },
+    lost: {
+      name: '证件丢失',
+      desc: 'Day 1 机场发现身份证丢失',
+      affectedNodes: ['n1','n2'],
+      chain: [
+        { agent: '应急重规划Agent', msg: '接收事件: 身份证在机场遗失, 酒店入住受阻', type: 'warn' },
+        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n2(酒店入住)为起点', type: 'info' },
+        { agent: '应急重规划Agent', msg: 'n2(酒店): 无身份证=无法办理入住, 需替代方案', type: 'warn' },
+        { agent: '应急重规划Agent', msg: 'n1(航班): 电子登机牌可用, 不受影响', type: 'info' },
+        { agent: '应急重规划Agent', msg: '闭环优化: 搜索合规替代方案…', type: 'info' },
+        { agent: '应急重规划Agent', msg: '方案A: 机场派出所开具临时身份证明(耗时约40min)', type: 'info' },
+        { agent: '应急重规划Agent', msg: '方案B: 护照备用(如携带) → 可立即入住', type: 'info' },
+        { agent: '议价Agent', msg: '生成话术: "…正在机场派出所办理临时证明, 预计18:30到达, 请保留房间"', type: 'info' },
+        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
+        { agent: '应急重规划Agent', msg: '✓ 方案A+B并行: 派出所开证明+联系酒店延迟入住, 总延迟1h, 损失¥0', type: 'ok' },
+      ],
+      newPlanModifier: (plan) => {
+        plan.days[0].title = '抵达北京 · 证件补办(已重规划)';
+        plan.days[0].nodes.splice(1, 0, { id: 'n1b', time: '14:40', name: '机场派出所', type: '🪪 临时身份证明', deps: ['n1'] });
+        plan.days[0].nodes[2].time = '15:30';
+        plan.days[0].nodes[2].deps = ['n1b'];
+        plan.days[0].nodes[3].time = '17:00';
+        plan.days[0].nodes[4].time = '18:30';
+        return plan;
+      },
+      conflicts: [
+        { dayId: 1, nodeId: 'n1', resolved: false },
+        { dayId: 1, nodeId: 'n2', resolved: true },
+      ]
+    }
+  };
+
+  const scenario = scenarios[type];
+
+  // 逐步播放推理日志
+  for (let i = 0; i < scenario.chain.length; i++) {
+    const entry = scenario.chain[i];
+    await sleep(350 + Math.random() * 400);
+    log(entry.agent, entry.msg, entry.type);
+  }
+
+  // 更新方案
+  const newPlan = scenario.newPlanModifier(JSON.parse(JSON.stringify(originalPlan)));
+
+  // 显示受影响行程
+  const affectedCard = document.getElementById('affectedItineraryCard');
+  affectedCard.style.display = 'block';
+  renderItinerary('affectedItinerary', newPlan, scenario.conflicts);
+
+  // 对比视图
+  const compareCard = document.getElementById('compareCard');
+  compareCard.style.display = 'block';
+  const compareGrid = document.getElementById('compareGrid');
+  compareGrid.innerHTML = `
+    <div class="compare-col old">
+      <h4>❌ 原始方案</h4>
+      ${scenario.affectedNodes.map(nid => {
+        let found = null;
+        originalPlan.days.forEach(d => d.nodes.forEach(n => { if (n.id === nid) found = n; }));
+        return found ? `<div class="compare-item"><span class="del">${found.time} ${found.name}</span></div>` : '';
+      }).join('')}
+    </div>
+    <div class="compare-col new">
+      <h4>✅ 重规划方案</h4>
+      ${scenario.affectedNodes.map(nid => {
+        let found = null;
+        newPlan.days.forEach(d => d.nodes.forEach(n => { if (n.id === nid || n.id === nid + '-new') found = n; }));
+        return found ? `<div class="compare-item"><span class="add">${found.time} ${found.name}</span></div>` : '';
+      }).join('')}
+    </div>
+  `;
+
+  const elapsed = performance.now() - start;
+  document.getElementById('inferTime').textContent = elapsed.toFixed(0) + 'ms';
+  document.getElementById('tokenCount').textContent = totalTokens.toLocaleString();
+
+  setAgentState(4, 'active', `重规划完成: 耗时${(elapsed/1000).toFixed(1)}s, 方案可行率92%`);
+  showToast(`应急重规划完成！${scenario.name} — 耗时 ${(elapsed/1000).toFixed(1)}秒`, 'success');
+}
+
+// ============================================================
+// 价格监控
+// ============================================================
+
+function refreshPrices() {
+  const grid = document.getElementById('priceGrid');
+  const items = [
+    { title: '机票 北京→目的地', price: '¥' + (1200 + Math.floor(Math.random() * 200)), trend: Math.random() > 0.5 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 100) },
+    { title: '北京饭店 · 豪华大床房', price: '¥' + (820 + Math.floor(Math.random() * 120)) + '/晚', trend: Math.random() > 0.6 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 80) },
+    { title: '故宫门票 · 含珍宝馆', price: '¥60', trend: 'up', change: '仅剩23张' },
+    { title: '八达岭长城 · 直通车', price: '¥' + (150 + Math.floor(Math.random() * 60)), trend: Math.random() > 0.7 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 40) },
+  ];
+  grid.innerHTML = items.map(i => `
+    <div class="price-card">
+      <div class="price-title">${i.title}</div>
+      <div class="price-value">${i.price}</div>
+      <div class="price-trend ${i.trend}">${i.change}</div>
+    </div>
+  `).join('');
+}
+
+function togglePriceMonitor() {
+  const btn = document.getElementById('monitorBtn');
+  if (priceMonitorInterval) {
+    clearInterval(priceMonitorInterval);
+    priceMonitorInterval = null;
+    btn.textContent = '▶ 开启实时监控';
+    btn.classList.remove('btn-danger');
+    btn.classList.add('btn-outline');
+  } else {
+    priceMonitorInterval = setInterval(refreshPrices, 2000);
+    btn.textContent = '⏸ 停止监控';
+    btn.classList.remove('btn-outline');
+    btn.classList.add('btn-danger');
+    showToast('价格实时监控已启动，每2秒刷新', 'warning');
+  }
+}
+
+// ============================================================
+// 工具函数
+// ============================================================
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; }, 2800);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+// ============================================================
+// 初始化
+// ============================================================
+
+function init() {
+  renderItinerary('itinerary', currentPlan);
+  // 初始化应急Tab的行程占位
+  document.getElementById('affectedItinerary').innerHTML = '<div style="color:#999;padding:20px;text-align:center;">点击突发事件按钮查看重规划结果</div>';
+}
+
+init();
+</script>
+</body>
+</html>
