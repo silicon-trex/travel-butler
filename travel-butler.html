@@ -177,8 +177,8 @@ body {
 .nodes-container { display: flex; flex-wrap: wrap; gap: 10px; position: relative; }
 .node {
   background: #f8f9fb; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-  padding: 12px 14px; font-size: 12px; min-width: 140px; flex: 1;
-  transition: all 0.4s ease; position: relative;
+  padding: 12px 14px; font-size: 12px; flex: 0 0 calc((100% - 50px) / 6); max-width: calc((100% - 50px) / 6);
+  transition: all 0.65s ease; position: relative;
 }
 .node:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
 .node.conflict {
@@ -200,6 +200,106 @@ body {
   display: flex; align-items: center; color: var(--primary-light); font-size: 18px;
   flex-shrink: 0; align-self: center;
 }
+
+/* ===== Node Edit Controls ===== */
+.node { position: relative; }
+.node-actions {
+  position: absolute; top: 4px; right: 4px; display: flex; gap: 2px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.node:hover .node-actions { opacity: 1; }
+.node-btn {
+  width: 22px; height: 22px; border: none; border-radius: 4px; cursor: pointer;
+  font-size: 11px; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.05); transition: background 0.2s;
+}
+.node-btn:hover { background: rgba(0,0,0,0.12); }
+.node-btn.danger:hover { background: var(--danger-light); }
+
+.node-edit-form {
+  display: flex; flex-direction: column; gap: 6px; padding: 4px 0;
+}
+.node-edit-form input, .node-edit-form select {
+  padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px;
+  font-size: 12px; font-family: inherit; outline: none;
+}
+.node-edit-form input:focus, .node-edit-form select:focus { border-color: var(--primary-light); }
+.node-edit-btns { display: flex; gap: 4px; }
+.node-edit-btns button {
+  flex: 1; padding: 4px; border: none; border-radius: 4px; font-size: 11px;
+  cursor: pointer; font-weight: 600;
+}
+.node-edit-btns .btn-save { background: var(--primary); color: #fff; }
+.node-edit-btns .btn-cancel { background: #eee; color: var(--text2); }
+
+.add-node-btn {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 12px; border: 1.5px dashed var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+  transition: all 0.2s; min-width: 100px;
+}
+.add-node-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0fafa; }
+
+/* ===== Custom Drag and Drop ===== */
+.drag-ghost {
+  position: fixed; pointer-events: none; z-index: 9999;
+  opacity: 0.9; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  border-radius: var(--radius-sm); background: #f8f9fb;
+  border: 2px solid var(--primary-light);
+  padding: 12px 14px; font-size: 12px;
+  transition: none;
+}
+.node.drag-hidden {
+  display: none !important;
+}
+.drag-hidden-arrow {
+  display: none !important;
+}
+.drag-placeholder {
+  border: 2px dashed var(--primary-light); border-radius: var(--radius-sm);
+  background: #e0f7f7; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--primary-light); box-sizing: border-box;
+  overflow: hidden; opacity: 0.7; padding: 12px;
+  flex: 0 0 0; min-width: 0;
+}
+@keyframes ph-expand {
+  from { flex-basis: 0; min-width: 0; padding: 0; }
+  to   { flex-basis: var(--ph-w); min-width: var(--ph-w); padding: 12px; }
+}
+.drag-placeholder.anim {
+  animation: ph-expand 0.65s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+@keyframes ph-collapse {
+  to { flex-basis: 0; min-width: 0; padding: 0; }
+}
+.drag-placeholder.show {
+  padding: 12px;
+}
+.node.swap-target {
+  border-color: var(--primary-light) !important;
+  background: #e0f7f7 !important;
+  box-shadow: 0 0 0 3px rgba(20, 163, 168, 0.3) !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+.node { cursor: grab; }
+.node:active { cursor: grabbing; }
+
+/* ===== Stream Box ===== */
+.stream-box {
+  background: #1a1a2e; color: #e0e0e0; border-radius: var(--radius-sm);
+  padding: 12px 16px; margin-bottom: 16px; display: none;
+}
+.stream-label { font-size: 11px; color: #f39c12; margin-bottom: 6px; font-weight: 600; }
+.stream-content {
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  font-size: 12px; line-height: 1.6; max-height: 200px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-all;
+}
+.stream-content::after {
+  content: '▊'; animation: blink 0.8s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
 
 @keyframes shake {
   0%,100%{transform:translateX(0);}
@@ -293,6 +393,17 @@ body {
 }
 .modal h3 { margin-bottom: 16px; }
 @keyframes fadeIn { from { opacity: 0; } }
+
+/* ===== Back to Top ===== */
+.back-to-top {
+  position: fixed; bottom: 30px; right: 30px; width: 44px; height: 44px;
+  border: none; border-radius: 50%; background: var(--primary); color: #fff;
+  font-size: 20px; cursor: pointer; box-shadow: var(--shadow-lg);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s;
+  z-index: 100; display: flex; align-items: center; justify-content: center;
+}
+.back-to-top.visible { opacity: 1; pointer-events: auto; }
+.back-to-top:hover { transform: translateY(-3px); background: var(--primary-light); }
 
 /* ===== Stats Bar ===== */
 .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -391,16 +502,20 @@ body {
 
       <!-- Stats -->
       <div class="stats-bar">
-        <div class="stat-card"><div class="stat-value" id="stat-days">3</div><div class="stat-label">行程天数</div></div>
-        <div class="stat-card"><div class="stat-value" id="stat-nodes">14</div><div class="stat-label">行程节点</div></div>
-        <div class="stat-card"><div class="stat-value" id="stat-constraints">12</div><div class="stat-label">约束条件</div></div>
-        <div class="stat-card"><div class="stat-value" id="stat-score">94</div><div class="stat-label">综合匹配度</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-days">—</div><div class="stat-label">行程天数</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-nodes">—</div><div class="stat-label">行程节点</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-constraints">—</div><div class="stat-label">约束条件</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-score">—</div><div class="stat-label">综合匹配度</div></div>
       </div>
 
       <!-- 偏好输入 -->
       <div class="card">
         <div class="card-title">📝 旅行偏好</div>
         <div class="form-row">
+          <div class="form-group">
+            <label>出发地</label>
+            <input type="text" id="departure" value="" placeholder="输入出发地">
+          </div>
           <div class="form-group">
             <label>目的地</label>
             <input type="text" id="dest" value="北京" placeholder="输入目的地">
@@ -415,7 +530,7 @@ body {
           </div>
           <div class="form-group">
             <label>出行人群</label>
-            <select id="group"><option>带父母</option><option>情侣出游</option><option>独自旅行</option><option>亲子家庭</option></select>
+            <select id="group"><option>带父母</option><option>情侣出游</option><option>和朋友出游</option><option>独自旅行</option><option>亲子家庭</option></select>
           </div>
         </div>
         <div class="form-row">
@@ -434,6 +549,12 @@ body {
         </div>
         <button class="btn btn-primary" onclick="generatePlan()">✨ 智能生成行程</button>
         <span style="font-size:12px;color:var(--text2);margin-left:12px;" id="genHint">点击后将模拟四Agent协同工作流程</span>
+      </div>
+
+      <!-- AI 实时推理 -->
+      <div class="stream-box" id="streamBox">
+        <div class="stream-label">🧠 AI 实时推理</div>
+        <div class="stream-content" id="streamContent"></div>
       </div>
 
       <!-- 生成的行程 -->
@@ -459,16 +580,15 @@ body {
             <div class="scenario-name">极端天气预警</div>
             <div style="font-size:11px;color:var(--text2)">户外景点关闭 → 室内替代</div>
           </button>
-          <button class="scenario-btn" onclick="triggerEmergency('closed')">
-            <div class="scenario-icon">🏛️</div>
-            <div class="scenario-name">景点临时闭馆</div>
-            <div style="font-size:11px;color:var(--text2)">故宫维修 → 重新调度</div>
-          </button>
           <button class="scenario-btn" onclick="triggerEmergency('lost')">
             <div class="scenario-icon">🪪</div>
             <div class="scenario-name">证件丢失</div>
             <div style="font-size:11px;color:var(--text2)">酒店入住受阻 → 应急处理</div>
           </button>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <input type="text" id="customEmergency" placeholder="描述突发事件，如：故宫临时闭馆、护照忘在酒店…" style="flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:inherit; outline:none;">
+          <button class="btn btn-danger btn-sm" onclick="triggerCustomEmergency()">🚨 触发应急</button>
         </div>
       </div>
 
@@ -516,6 +636,9 @@ body {
 <!-- ===== TOAST CONTAINER ===== -->
 <div id="toastContainer"></div>
 
+<!-- ===== BACK TO TOP ===== -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
 <script>
 // ============================================================
 // 数据模型
@@ -562,6 +685,121 @@ let priceMonitorInterval = null;
 let totalTokens = 0;
 
 // ============================================================
+// WebSocket 连接
+// ============================================================
+
+let ws = null;
+let wsReady = false;
+
+function connectWS() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+  ws.onopen = () => {
+    wsReady = true;
+    console.log('[WS] 已连接');
+    // 加载上次保存的行程
+    ws.send(JSON.stringify({ type: 'load_plan' }));
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    switch (msg.type) {
+      case 'agent_status':
+        if (msg.state === 'thinking') {
+          clearStreamBox();
+        }
+        setAgentState(msg.agent_id, msg.state, msg.detail);
+        break;
+      case 'log':
+        log(msg.agent_name, msg.message, msg.log_type);
+        break;
+      case 'token_update':
+        document.getElementById('tokenCount').textContent = msg.count.toLocaleString();
+        break;
+      case 'time_update':
+        document.getElementById('inferTime').textContent = msg.ms + 'ms';
+        break;
+      case 'plan_result':
+        currentPlan = msg.data;
+        renderItinerary('itinerary', currentPlan);
+        if (msg.stats) {
+          document.getElementById('stat-days').textContent = msg.stats.days;
+          document.getElementById('stat-nodes').textContent = msg.stats.nodes;
+          document.getElementById('stat-constraints').textContent = msg.stats.constraints;
+          document.getElementById('stat-score').textContent = msg.stats.score;
+        }
+        break;
+      case 'emergency_result':
+        renderEmergencyResult(msg.data);
+        break;
+      case 'price_update':
+        renderPriceCardsFromData(msg.data);
+        break;
+      case 'error':
+        showToast(msg.message, 'error');
+        break;
+      case 'stream_chunk':
+        appendStreamText(msg.text);
+        break;
+      case 'done':
+        document.getElementById('genHint').textContent = '✅ 完成';
+        break;
+    }
+  };
+
+  ws.onclose = () => {
+    wsReady = false;
+    console.log('[WS] 断开，3秒后重连...');
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => {
+    wsReady = false;
+  };
+}
+
+connectWS();
+
+// ============================================================
+// 侧边栏固定定位
+// ============================================================
+(function() {
+  const sidebar = document.querySelector('.sidebar');
+  const mainContent = document.querySelector('.main-content');
+  if (!sidebar || !mainContent) return;
+  const rect = sidebar.getBoundingClientRect();
+  const fixedTop = rect.top;
+  const fixedLeft = rect.left;
+  const fixedWidth = rect.width;
+  let pinned = false;
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 0 && !pinned) {
+      sidebar.style.position = 'fixed';
+      sidebar.style.top = fixedTop + 'px';
+      sidebar.style.left = fixedLeft + 'px';
+      sidebar.style.width = fixedWidth + 'px';
+      mainContent.style.marginLeft = (fixedWidth + 20) + 'px';
+      pinned = true;
+    } else if (window.scrollY === 0 && pinned) {
+      sidebar.style.position = '';
+      sidebar.style.top = '';
+      sidebar.style.left = '';
+      sidebar.style.width = '';
+      mainContent.style.marginLeft = '';
+      pinned = false;
+    }
+  }, { passive: true });
+})();
+
+// 回到顶部按钮
+const backToTopBtn = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  backToTopBtn.classList.toggle('visible', window.scrollY > 300);
+}, { passive: true });
+
+// ============================================================
 // 渲染函数
 // ============================================================
 
@@ -600,15 +838,601 @@ function renderItinerary(containerId, plan, highlightConflicts = []) {
       } else if (isResolved) {
         html += `<div class="node-status ok">✓</div>`;
       }
+      html += `<div class="node-actions"><button class="node-btn" onclick="editNode('${node.id}')">✏️</button><button class="node-btn danger" onclick="deleteNode('${node.id}')">🗑️</button></div>`;
       html += `<div class="node-time">${node.time}</div>`;
       html += `<div class="node-name">${node.name}</div>`;
       html += `<div class="node-type">${node.type}</div>`;
       html += `</div>`;
     });
-    html += `</div></div>`;
+    html += `</div>`;
+    html += `<div style="margin-top:8px;"><button class="add-node-btn" onclick="addNode(${day.id})">➕ 添加节点</button></div>`;
+    html += `</div>`;
   });
 
   container.innerHTML = html;
+}
+
+// ============================================================
+// 行程编辑
+// ============================================================
+
+const nodeTypes = [
+  '✈️ 航班到达', '✈️ 航班出发', '🚄 高铁', '🚗 包车', '🚗 打车',
+  '🏨 办理入住', '🏨 退房',
+  '🏛️ 世界遗产', '🏛️ 博物馆', '🌿 自然风光', '🌿 公园',
+  '🍽️ 早餐', '🍽️ 午餐', '🍽️ 晚餐', '🍽️ 下午茶',
+  '🚶 轻松漫步', '🛍️ 购物', '🎭 演出', '📸 拍照打卡',
+  '🪪 证件办理', '🚕 接送机', '⛵ 游船',
+];
+
+function findNode(nodeId) {
+  for (const day of currentPlan.days) {
+    for (const node of day.nodes) {
+      if (node.id === nodeId) return { node, day };
+    }
+  }
+  return null;
+}
+
+function editNode(nodeId) {
+  const el = document.getElementById(`node-${nodeId}`);
+  const result = findNode(nodeId);
+  if (!result) return;
+  const { node } = result;
+
+  const typeOptions = nodeTypes.map(t =>
+    `<option value="${t}" ${t === node.type ? 'selected' : ''}>${t}</option>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="node-edit-form">
+      <input type="text" id="edit-time-${nodeId}" value="${node.time}" placeholder="时间">
+      <input type="text" id="edit-name-${nodeId}" value="${node.name}" placeholder="名称">
+      <select id="edit-type-${nodeId}">${typeOptions}</select>
+      <div class="node-edit-btns">
+        <button class="btn-save" onclick="saveNode('${nodeId}')">保存</button>
+        <button class="btn-cancel" onclick="cancelEdit()">取消</button>
+      </div>
+    </div>
+  `;
+}
+
+function saveNode(nodeId) {
+  const result = findNode(nodeId);
+  if (!result) return;
+  const { node } = result;
+
+  node.time = document.getElementById(`edit-time-${nodeId}`).value;
+  node.name = document.getElementById(`edit-name-${nodeId}`).value;
+  node.type = document.getElementById(`edit-type-${nodeId}`).value;
+
+  sendPlanUpdate();
+}
+
+function deleteNode(nodeId) {
+  for (const day of currentPlan.days) {
+    const idx = day.nodes.findIndex(n => n.id === nodeId);
+    if (idx !== -1) {
+      day.nodes.splice(idx, 1);
+      // 清理依赖：其他节点的 deps 中移除被删节点
+      for (const d of currentPlan.days) {
+        for (const n of d.nodes) {
+          n.deps = n.deps.filter(dep => dep !== nodeId);
+        }
+      }
+      break;
+    }
+  }
+  sendPlanUpdate();
+}
+
+function addNode(dayId) {
+  const day = currentPlan.days.find(d => d.id === dayId);
+  if (!day) return;
+
+  const newId = 'n' + Date.now();
+  const lastTime = day.nodes.length > 0 ? day.nodes[day.nodes.length - 1].time : '08:00';
+  const lastDep = day.nodes.length > 0 ? [day.nodes[day.nodes.length - 1].id] : [];
+
+  day.nodes.push({
+    id: newId,
+    time: lastTime,
+    name: '新节点',
+    type: '🚶 轻松漫步',
+    deps: lastDep,
+  });
+
+  sendPlanUpdate();
+}
+
+function cancelEdit() {
+  renderItinerary('itinerary', currentPlan);
+}
+
+function sendPlanUpdate() {
+  if (!wsReady) return;
+  ws.send(JSON.stringify({ type: 'update_plan', data: { plan: currentPlan } }));
+}
+
+// ============================================================
+// 自定义拖拽排序 (mousedown/mousemove/mouseup)
+// ============================================================
+
+let dragState = null; // { nodeId, ghost, startX, startY, started, srcContainer, targetContainer, placeholder, dropBeforeNodeId, lockedNodes }
+
+// 找到下一个可见的非隐藏元素（跳过占位框，但占位框不影响 closestNode 计算）
+function nextVisible(el) {
+  while (el && (el.classList.contains('drag-hidden') || el.classList.contains('drag-hidden-arrow') || el.classList.contains('drag-placeholder'))) {
+    el = el.nextElementSibling;
+  }
+  return el;
+}
+function prevVisible(el) {
+  while (el && (el.classList.contains('drag-hidden') || el.classList.contains('drag-hidden-arrow') || el.classList.contains('drag-placeholder'))) {
+    el = el.previousElementSibling;
+  }
+  return el;
+}
+
+function clearSwapHighlight() {
+  document.querySelectorAll('.node.swap-target').forEach(n => n.classList.remove('swap-target'));
+}
+
+function findNodeAtPoint(container, x, y) {
+  const nodes = container.querySelectorAll('.node:not(.drag-hidden)');
+  for (const node of nodes) {
+    const r = node.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      return node;
+    }
+  }
+  return null;
+}
+
+function findArrowAtPoint(itineraryEl, x, y) {
+  const pad = 20; // 判定范围向外扩展 20px
+  const arrows = itineraryEl.querySelectorAll('.node-arrow:not(.drag-hidden-arrow)');
+  for (const arrow of arrows) {
+    const r = arrow.getBoundingClientRect();
+    if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) {
+      return arrow;
+    }
+  }
+  return null;
+}
+
+function findEndZone(itineraryEl, x, y) {
+  const containers = itineraryEl.querySelectorAll('.nodes-container');
+  for (const nc of containers) {
+    const nodes = nc.querySelectorAll('.node:not(.drag-hidden)');
+    if (nodes.length === 0) continue;
+    const lastNode = nodes[nodes.length - 1];
+    const nr = lastNode.getBoundingClientRect();
+    const cr = nc.getBoundingClientRect();
+    // 鼠标在容器内、最后一行节点下方范围内、且在最后一个节点右侧
+    if (y >= nr.top - 10 && y <= nr.bottom + 10 && x >= nr.right - 10 && x <= cr.right + 10) {
+      return nc;
+    }
+  }
+  return null;
+}
+
+function removePlaceholder() {
+  document.querySelectorAll('.drag-placeholder').forEach(ph => {
+    if (ph.classList.contains('collapsing')) return;
+    ph.classList.add('collapsing');
+    // 先清除展开动画，锁定当前宽度作为收起起点
+    const w = ph.offsetWidth;
+    ph.style.animation = 'none';
+    ph.style.flexBasis = w + 'px';
+    ph.style.minWidth = w + 'px';
+    ph.offsetHeight; // reflow
+    // 再播收起动画
+    ph.style.animation = 'ph-collapse 0.5s cubic-bezier(0.6, 0, 1, 1) forwards';
+    ph.addEventListener('animationend', () => ph.remove(), { once: true });
+  });
+}
+
+function showPlaceholder(nodesContainer, insertBefore, width, height) {
+  removePlaceholder();
+  const ph = document.createElement('div');
+  ph.className = 'drag-placeholder';
+  ph.textContent = '↓';
+  ph.style.height = height + 'px';
+  ph.style.setProperty('--ph-w', width + 'px');
+
+  if (insertBefore) {
+    nodesContainer.insertBefore(ph, insertBefore);
+  } else {
+    nodesContainer.appendChild(ph);
+  }
+
+  // 添加动画类，@keyframes 自动从 0 展开到目标宽度
+  ph.classList.add('anim');
+}
+
+// 静默恢复占位框（不触发动画，用于目标未变时）
+function showPlaceholderQuiet(nodesContainer, insertBefore, width, height) {
+  const ph = document.createElement('div');
+  ph.className = 'drag-placeholder';
+  ph.textContent = '↓';
+  ph.style.height = height + 'px';
+  ph.style.flexBasis = width + 'px';
+  ph.style.minWidth = width + 'px';
+
+  if (insertBefore) {
+    nodesContainer.insertBefore(ph, insertBefore);
+  } else {
+    nodesContainer.appendChild(ph);
+  }
+}
+
+function getDropTarget(itineraryEl, clientX, clientY) {
+  const containers = itineraryEl.querySelectorAll('.nodes-container');
+  for (const nc of containers) {
+    const ncRect = nc.getBoundingClientRect();
+    if (clientY >= ncRect.top && clientY <= ncRect.bottom &&
+        clientX >= ncRect.left && clientX <= ncRect.right) {
+      const allNodes = nc.querySelectorAll('.node:not(.drag-hidden)');
+      if (allNodes.length === 0) return { container: nc, insertBefore: null };
+
+      // 按行分组：只取与鼠标 Y 同一行的节点
+      const rowNodes = [];
+      for (const node of allNodes) {
+        const r = node.getBoundingClientRect();
+        if (clientY >= r.top - 4 && clientY <= r.bottom + 4) {
+          rowNodes.push({ node, left: r.left, right: r.right, midX: r.left + r.width / 2 });
+        }
+      }
+
+      // 如果鼠标不在任何节点行上 → 末尾
+      if (rowNodes.length === 0) return { container: nc, insertBefore: null };
+
+      // 如果鼠标在第一个节点左边 → 插入到该行最前面
+      if (clientX <= rowNodes[0].left) {
+        return { container: nc, insertBefore: rowNodes[0].node };
+      }
+
+      // 遍历同行相邻节点对，找到鼠标所在的区间
+      for (let i = 0; i < rowNodes.length - 1; i++) {
+        const right = rowNodes[i].right;
+        const left = rowNodes[i + 1].left;
+        if (clientX >= right && clientX <= left) {
+          const gapMid = (right + left) / 2;
+          if (clientX < gapMid) {
+            return { container: nc, insertBefore: rowNodes[i + 1].node };
+          } else {
+            if (i + 2 < rowNodes.length) {
+              return { container: nc, insertBefore: rowNodes[i + 2].node };
+            }
+            return { container: nc, insertBefore: null };
+          }
+        }
+      }
+
+      // 鼠标在某个同行节点内部
+      for (let i = 0; i < rowNodes.length; i++) {
+        const info = rowNodes[i];
+        if (clientX >= info.left && clientX <= info.right) {
+          if (clientX < info.midX) {
+            return { container: nc, insertBefore: info.node };
+          } else {
+            if (i + 1 < rowNodes.length) {
+              return { container: nc, insertBefore: rowNodes[i + 1].node };
+            }
+            return { container: nc, insertBefore: null };
+          }
+        }
+      }
+
+      // 鼠标在该行最后一个节点右边 → 末尾
+      return { container: nc, insertBefore: null };
+    }
+  }
+  return null;
+}
+
+function initDragAndDrop() {
+  const itineraryEl = document.getElementById('itinerary');
+
+  itineraryEl.addEventListener('mousedown', (e) => {
+    const nodeEl = e.target.closest('.node');
+    if (!nodeEl) return;
+    // 不要拦截编辑按钮的点击
+    if (e.target.closest('.node-btn') || e.target.closest('.node-edit-form')) return;
+
+    const nodeId = nodeEl.id.replace('node-', '');
+    e.preventDefault(); // 阻止文字选中
+    dragState = {
+      nodeId,
+      nodeEl,
+      startX: e.clientX,
+      startY: e.clientY,
+      started: false,
+      ghost: null,
+      srcContainer: null,
+      targetContainer: null,
+      dropBeforeNodeId: null,
+      hasTarget: false,
+      hiddenArrow: null,
+      swapTargetEl: null,
+      lastTargetKey: null,
+      hoveredArrow: null,
+    };
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragState) return;
+
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+
+    // 阈值：移动超过 5px 才开始拖拽
+    if (!dragState.started) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      dragState.started = true;
+      startCustomDrag(e);
+    }
+
+    e.preventDefault(); // 阻止文字选中
+
+    // 更新 ghost 位置
+    if (dragState.ghost) {
+      dragState.ghost.style.left = (e.clientX - 40) + 'px';
+      dragState.ghost.style.top = (e.clientY - 20) + 'px';
+    }
+
+    // 只在鼠标悬停到箭头上时才展开占位框
+    const px = e.clientX, py = e.clientY;
+    clearSwapHighlight();
+
+    const hoveredArrow = findArrowAtPoint(itineraryEl, px, py);
+    if (hoveredArrow) {
+      // 记住当前悬停的箭头，同一个箭头内不重复触发动画
+      if (hoveredArrow === dragState.hoveredArrow) return;
+
+      removePlaceholder();
+      dragState.hoveredArrow = hoveredArrow;
+
+      const nc = hoveredArrow.closest('.nodes-container');
+      const insertBefore = hoveredArrow.nextElementSibling;
+      const targetKey = nc.id + ':' + (insertBefore ? insertBefore.id : 'end');
+      dragState.lastTargetKey = targetKey;
+      dragState.targetContainer = nc;
+      dragState.hasTarget = true;
+
+      const isCrossDay = nc !== dragState.srcContainer;
+      if (isCrossDay) {
+        if (insertBefore && insertBefore.classList.contains('node')) {
+          insertBefore.classList.add('swap-target');
+          dragState.swapTargetEl = insertBefore;
+          dragState.dropBeforeNodeId = insertBefore.id.replace('node-', '');
+        }
+      } else {
+        let dropNodeId = null;
+        if (insertBefore && insertBefore.classList.contains('node')) {
+          dropNodeId = insertBefore.id.replace('node-', '');
+        }
+        dragState.dropBeforeNodeId = dropNodeId;
+        dragState.swapTargetEl = null;
+        showPlaceholder(nc, insertBefore, dragState.nodeWidth, dragState.nodeHeight);
+      }
+    } else {
+      // 没悬停在箭头上，检查是否在某个容器的末尾区域
+      const endZone = findEndZone(itineraryEl, px, py);
+      if (endZone) {
+        const targetKey = endZone.id + ':end';
+        if (targetKey !== dragState.lastTargetKey) {
+          removePlaceholder();
+          dragState.hoveredArrow = null;
+          dragState.lastTargetKey = targetKey;
+          dragState.targetContainer = endZone;
+          dragState.hasTarget = true;
+          dragState.dropBeforeNodeId = null;
+          dragState.swapTargetEl = null;
+          showPlaceholder(endZone, null, dragState.nodeWidth, dragState.nodeHeight);
+        }
+      } else if (dragState.hoveredArrow || dragState.lastTargetKey) {
+        // 离开所有区域，清除状态
+        removePlaceholder();
+        dragState.hoveredArrow = null;
+        dragState.lastTargetKey = null;
+        dragState.dropBeforeNodeId = null;
+        dragState.hasTarget = false;
+        dragState.swapTargetEl = null;
+      }
+    }
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!dragState) return;
+    if (!dragState.started) {
+      dragState = null;
+      return;
+    }
+    finishCustomDrag();
+  });
+}
+
+function startCustomDrag(e) {
+  const nodeEl = dragState.nodeEl;
+  const nodeRect = nodeEl.getBoundingClientRect();
+
+  // 1. 创建 ghost
+  const ghost = document.createElement('div');
+  ghost.className = 'drag-ghost';
+  ghost.innerHTML = nodeEl.innerHTML;
+  ghost.style.width = nodeRect.width + 'px';
+  ghost.style.left = (e.clientX - 40) + 'px';
+  ghost.style.top = (e.clientY - 20) + 'px';
+  document.body.appendChild(ghost);
+  dragState.ghost = ghost;
+
+  // 2. 记录尺寸
+  dragState.nodeHeight = nodeRect.height;
+  dragState.nodeWidth = nodeRect.width;
+
+  // 3. FLIP: 记录所有节点当前位置
+  dragState.srcContainer = nodeEl.closest('.nodes-container');
+  const allNodes = dragState.srcContainer.querySelectorAll('.node');
+  const firstRects = new Map();
+  allNodes.forEach(n => firstRects.set(n, n.getBoundingClientRect()));
+
+  // 4. 隐藏相邻箭头 + 被拖动节点
+  const nextArrow = nodeEl.nextElementSibling;
+  const prevArrow = nodeEl.previousElementSibling;
+  if (nextArrow && nextArrow.classList.contains('node-arrow')) {
+    nextArrow.classList.add('drag-hidden-arrow');
+    dragState.hiddenArrow = nextArrow;
+  } else if (prevArrow && prevArrow.classList.contains('node-arrow')) {
+    prevArrow.classList.add('drag-hidden-arrow');
+    dragState.hiddenArrow = prevArrow;
+  }
+  nodeEl.classList.add('drag-hidden');
+
+  // 5. FLIP: 计算位移差，平滑动画其他节点补上空位
+  allNodes.forEach(n => {
+    if (n === nodeEl) return;
+    const first = firstRects.get(n);
+    const last = n.getBoundingClientRect();
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    if (dx === 0 && dy === 0) return;
+    n.style.transition = 'none';
+    n.style.transform = `translate(${dx}px, ${dy}px)`;
+    n.offsetHeight;
+    n.style.transition = 'transform 0.65s ease';
+    n.style.transform = '';
+    n.addEventListener('transitionend', () => {
+      n.style.transition = '';
+    }, { once: true });
+  });
+
+  // 阻止文字选中
+  document.body.style.userSelect = 'none';
+  document.body.style.webkitUserSelect = 'none';
+}
+
+function finishCustomDrag() {
+  const { nodeEl, nodeId, ghost, srcContainer, targetContainer, dropBeforeNodeId, hiddenArrow } = dragState;
+
+  // 移除 ghost
+  if (ghost) ghost.remove();
+
+  // 移除占位符和高亮
+  removePlaceholder();
+  clearSwapHighlight();
+
+  // 恢复原节点和箭头
+  nodeEl.classList.remove('drag-hidden');
+  if (hiddenArrow) hiddenArrow.classList.remove('drag-hidden-arrow');
+
+  // 恢复文字选中
+  document.body.style.userSelect = '';
+  document.body.style.webkitUserSelect = '';
+
+  // 执行数据更新（需要有有效的放置目标）
+  if (!dragState.hasTarget) {
+    dragState = null;
+    return;
+  }
+
+  // 找到源节点所在的天和位置
+  let srcDay = null, srcIdx = -1;
+  for (const day of currentPlan.days) {
+    for (let i = 0; i < day.nodes.length; i++) {
+      if (day.nodes[i].id === nodeId) { srcDay = day; srcIdx = i; }
+    }
+  }
+
+  if (srcDay && srcIdx !== -1) {
+    const isCrossDay = targetContainer && targetContainer !== srcContainer;
+    if (dropBeforeNodeId === null) {
+      if (isCrossDay) {
+        // 跨天拖到末尾：与最后一天的最后一个节点交换
+        const targetDayId = getDayIdForContainer(targetContainer);
+        const targetDay = targetDayId ? currentPlan.days.find(d => d.id === targetDayId) : null;
+        if (targetDay && targetDay.nodes.length > 0) {
+          const tgtIdx = targetDay.nodes.length - 1;
+          const srcNode = srcDay.nodes[srcIdx];
+          const tgtNode = targetDay.nodes[tgtIdx];
+          srcDay.nodes[srcIdx] = tgtNode;
+          targetDay.nodes[tgtIdx] = srcNode;
+          updateDeps(srcDay);
+          updateDeps(targetDay);
+          sendPlanUpdate();
+        }
+      } else {
+        // 同天移到末尾
+        const [node] = srcDay.nodes.splice(srcIdx, 1);
+        srcDay.nodes.push(node);
+        updateDeps(srcDay);
+        sendPlanUpdate();
+      }
+    } else {
+      // 找到目标节点
+      let tgtDay = null, tgtIdx = -1;
+      for (const day of currentPlan.days) {
+        for (let i = 0; i < day.nodes.length; i++) {
+          if (day.nodes[i].id === dropBeforeNodeId) { tgtDay = day; tgtIdx = i; }
+        }
+      }
+      if (tgtDay && tgtIdx !== -1) {
+        if (srcDay.id === tgtDay.id) {
+          // 同天移动
+          const [node] = srcDay.nodes.splice(srcIdx, 1);
+          const insertAt = srcIdx < tgtIdx ? tgtIdx - 1 : tgtIdx;
+          srcDay.nodes.splice(insertAt, 0, node);
+        } else {
+          // 跨天：交换两个节点
+          const srcNode = srcDay.nodes[srcIdx];
+          const tgtNode = tgtDay.nodes[tgtIdx];
+          srcDay.nodes[srcIdx] = tgtNode;
+          tgtDay.nodes[tgtIdx] = srcNode;
+          updateDeps(srcDay);
+        }
+        updateDeps(tgtDay);
+        sendPlanUpdate();
+      }
+    }
+  }
+
+  dragState = null;
+}
+
+function getDayIdForContainer(container) {
+  const dayBlock = container.closest('.day-block');
+  if (!dayBlock) return null;
+  const numEl = dayBlock.querySelector('.day-number');
+  if (!numEl) return null;
+  const text = numEl.textContent; // "D1", "D2", etc.
+  const num = parseInt(text.replace('D', ''));
+  return isNaN(num) ? null : num;
+}
+
+function updateDeps(day) {
+  for (let i = 0; i < day.nodes.length; i++) {
+    day.nodes[i].deps = i > 0 ? [day.nodes[i - 1].id] : [];
+  }
+}
+
+// ============================================================
+// 流式输出
+// ============================================================
+
+function appendStreamText(text) {
+  const box = document.getElementById('streamBox');
+  const content = document.getElementById('streamContent');
+  box.style.display = 'block';
+  content.textContent += text;
+  content.scrollTop = content.scrollHeight;
+}
+
+function clearStreamBox() {
+  const box = document.getElementById('streamBox');
+  const content = document.getElementById('streamContent');
+  content.textContent = '';
+  box.style.display = 'none';
 }
 
 function renderPriceCards() {
@@ -708,9 +1532,16 @@ function switchTab(name) {
 // ============================================================
 
 async function generatePlan() {
+  if (!wsReady) {
+    showToast('后端未连接，请稍后重试', 'error');
+    return;
+  }
+
+  const departure = document.getElementById('departure').value;
   const dest = document.getElementById('dest').value;
   const startDate = document.getElementById('startDate').value;
-  const days = document.getElementById('days').value;
+  const daysStr = document.getElementById('days').value;
+  const days = parseInt(daysStr);
   const group = document.getElementById('group').value;
   const pace = document.getElementById('pace').value;
   const interest = document.getElementById('interest').value;
@@ -719,77 +1550,20 @@ async function generatePlan() {
   const hint = document.getElementById('genHint');
   hint.textContent = '⏳ Agent协作中…';
 
-  // 重置
+  // 重置UI
   totalTokens = 0;
   document.getElementById('tokenCount').textContent = '0';
   document.getElementById('inferTime').textContent = '0ms';
-  currentPlan = JSON.parse(JSON.stringify(originalPlan));
-  document.getElementById('stat-days').textContent = days === '3天' ? '3' : days === '5天' ? '5' : '7';
-  document.getElementById('stat-nodes').textContent = days === '3天' ? '14' : '22';
-  document.getElementById('stat-constraints').textContent = '12';
-  document.getElementById('stat-score').textContent = '94';
+  document.getElementById('stat-days').textContent = days;
+  document.getElementById('stat-nodes').textContent = '—';
+  document.getElementById('stat-constraints').textContent = '—';
+  document.getElementById('stat-score').textContent = '—';
 
-  const start = performance.now();
-
-  // --- Agent 1: 偏好解析 ---
-  setAgentState(1, 'thinking', '正在解析偏好权重…');
-  log('偏好解析Agent', `输入: 目的地=${dest}, 人群=${group}, 节奏=${pace}, 兴趣=${interest}, 预算=${budget}`, 'info');
-  await sleep(600);
-  addTokens(420);
-  log('偏好解析Agent', `刚性约束: 日出游≤6h, 午休≥1h, 爬升≤500m, 单日步行≤8km`, 'info');
-  await sleep(400);
-  addTokens(380);
-  log('偏好解析Agent', `柔性权重: 人文景点0.85, 餐饮品质0.72, 购物0.35, 夜间活动0.28`, 'info');
-  await sleep(300);
-  setAgentState(1, 'active', `解析完成: 提取${days === '3天' ? '8' : '14'}项约束, ${days === '3天' ? '5' : '9'}组偏好权重`);
-
-  // --- Agent 2: 行程拓扑生成 ---
-  setAgentState(2, 'thinking', '正在构建DAG拓扑…');
-  await sleep(500);
-  addTokens(1200);
-  log('行程拓扑Agent', `空间距离矩阵已加载 (${dest} POI数据库, 237个候选节点)`, 'info');
-  await sleep(600);
-  addTokens(1500);
-  log('行程拓扑Agent', '运行多目标优化: NSGA-II 种群=200, 迭代=50代', 'info');
-  await sleep(400);
-  log('行程拓扑Agent', '第20代: 帕累托前沿 14个非支配解, 适应度收敛至 0.94', 'info');
-  await sleep(300);
-  log('行程拓扑Agent', '验证约束: ✓ 开放时间兼容 ✓ 体力消耗曲线合理 ✓ 餐食间隔≥3h', 'ok');
-  await sleep(500);
-  setAgentState(2, 'active', 'DAG生成完成: 14个节点, 18条有向边, 无环验证通过');
-  addTokens(800);
-
-  // --- Agent 3: 实时保障 ---
-  setAgentState(3, 'thinking', '并行查询价格…');
-  await sleep(400);
-  addTokens(650);
-  log('实时保障Agent', '并行查询: Amadeus机票API ✓, Booking酒店API ✓, 景区票务API ✓', 'ok');
-  await sleep(300);
-  log('实时保障Agent', '机票: 当前¥1,280 (低于均值¥1,520), 建议锁定', 'ok');
-  log('实时保障Agent', '酒店: 北京饭店豪华大床房 ¥880/晚, 含免费取消', 'ok');
-  await sleep(300);
-  addTokens(400);
-  log('实时保障Agent', '谈判话术已生成: "您好,我们带父母出行,能否申请高层安静房间?…"', 'info');
-  setAgentState(3, 'active', '价格监控已启动, 3项服务已锁定最优价格');
-
-  // --- Agent 4: 检查 ---
-  setAgentState(4, 'error');
-
-  // 渲染行程
-  renderItinerary('itinerary', currentPlan);
-
-  const elapsed = (performance.now() - start).toFixed(0);
-  document.getElementById('inferTime').textContent = elapsed + 'ms';
-  document.getElementById('stat-score').textContent = '94';
-
-  // Toast
-  showToast('行程生成完成！四Agent协同耗时 ' + (elapsed/1000).toFixed(1) + 's', 'success');
-  hint.textContent = `✅ 完成，消耗 ${totalTokens.toLocaleString()} tokens`;
-
-  // 更新价格
-  if (document.getElementById('panel-price').classList.contains('active')) {
-    renderPriceCards();
-  }
+  // 通过WebSocket发送请求，后续状态由onmessage处理
+  ws.send(JSON.stringify({
+    type: 'generate_plan',
+    data: { departure, destination: dest, start_date: startDate, days, group, pace, interest, budget }
+  }));
 }
 
 // ============================================================
@@ -797,203 +1571,101 @@ async function generatePlan() {
 // ============================================================
 
 async function triggerEmergency(type) {
-  // 切换到应急Tab
+  if (!wsReady) {
+    showToast('后端未连接，请稍后重试', 'error');
+    return;
+  }
+
   switchTab('emergency');
 
-  // 清空
   const logContainer = document.getElementById('logContainer');
   logContainer.innerHTML = '';
   document.getElementById('compareCard').style.display = 'none';
   document.getElementById('affectedItineraryCard').style.display = 'none';
 
-  // 重置plan
-  currentPlan = JSON.parse(JSON.stringify(originalPlan));
-
-  const start = performance.now();
   totalTokens = 0;
   document.getElementById('tokenCount').textContent = '0';
 
-  // --- 激活Agent 4 ---
-  setAgentState(4, 'thinking', '突发事件触发 → BFS遍历中…');
-  log('应急重规划Agent', '══════ 突发事件触发 ══════', 'warn');
+  ws.send(JSON.stringify({
+    type: 'trigger_emergency',
+    data: { scenario: type }
+  }));
+}
 
-  const scenarios = {
-    flight: {
-      name: '航班延误 3小时',
-      desc: 'Day 1 首都机场T3到达时间从14:00推迟至17:00',
-      affectedNodes: ['n1','n2','n3','n4'],
-      chain: [
-        { agent: '应急重规划Agent', msg: '接收事件: 航班CA1234 延误, ETA 14:00 → 17:00 (+3h)', type: 'warn' },
-        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n1(航班到达)为起点, 沿DAG出边传播', type: 'info' },
-        { agent: '应急重规划Agent', msg: '第1层→ n2(酒店入住): 原15:30 → 冲突! 酒店最晚入住22:00, 暂不受影响但紧邻时间窗', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '第2层→ n3(王府井): 原17:00 → 严重冲突! 到达时间将推迟至18:30+', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '第3层→ n4(大董烤鸭): 原18:30 → 严重冲突! 预订保留至18:45, 超时将取消+扣除¥200定金', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '闭环优化启动: 搜索可行重规划路径…', type: 'info' },
-        { agent: '应急重规划Agent', msg: '方案A: 联系大董推迟至19:30 (需确认有空位) — 成本¥0', type: 'info' },
-        { agent: '应急重规划Agent', msg: '方案B: 取消大董, 改酒店中餐厅 — 损失定金¥200', type: 'info' },
-        { agent: '应急重规划Agent', msg: '方案C: 机场直达酒店→点客房送餐 — 体验降级但可控', type: 'info' },
-        { agent: '应急重规划Agent', msg: '━━━ 驱动议价Agent ━━━', type: 'info' },
-        { agent: '议价Agent', msg: '生成话术: "您好, 我是大董烤鸭今晚的订位客人, 航班CA1234延误推送至17:00, 能否将预订保留至19:30? 我们愿意支付延迟保证金"', type: 'info' },
-        { agent: '议价Agent', msg: '生成话术(酒店): "…航班延误, 最晚入住时间从18:00推迟至20:00, 请保留房间"', type: 'info' },
-        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '✓ 方案A采纳: 大董推迟至19:30(已确认), 王府井压缩至30min散步, 酒店入住顺延至18:00', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '总损失: ¥0 (仅体验略有下降), 全链路可行性: 92%', type: 'ok' },
-      ],
-      newPlanModifier: (plan) => {
-        plan.days[0].nodes[0].time = '17:00';
-        plan.days[0].nodes[1].time = '18:00';
-        plan.days[0].nodes[2].time = '18:45';
-        plan.days[0].nodes[3].time = '19:30';
-        plan.days[0].title = '抵达北京 · 航班延误(已重规划)';
-        return plan;
-      },
-      conflicts: [
-        { dayId: 1, nodeId: 'n1', resolved: true },
-        { dayId: 1, nodeId: 'n2', resolved: true },
-        { dayId: 1, nodeId: 'n3', resolved: true },
-        { dayId: 1, nodeId: 'n4', resolved: true },
-      ]
-    },
-    weather: {
-      name: '极端天气预警',
-      desc: 'Day 3 暴雨预警, 八达岭长城关闭',
-      affectedNodes: ['n10','n11','n12','n13','n14'],
-      chain: [
-        { agent: '应急重规划Agent', msg: '接收事件: 延庆区暴雨橙色预警, 八达岭长城8:00起关闭', type: 'warn' },
-        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n11(八达岭长城)为起点双向传播', type: 'info' },
-        { agent: '应急重规划Agent', msg: '上游→ n10(酒店出发): 包车需取消或改道', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '下游→ n12(农家菜): 失去前置节点, 可保留但需调整时间', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '下游→ n13(明十三陵): 户外景点同样受暴雨影响, 需替代', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '下游→ n14(返程): 时间结构完全改变', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '闭环优化: 搜索Day3室内替代方案…', type: 'info' },
-        { agent: '应急重规划Agent', msg: '匹配: 国家博物馆(室内, 人文权重0.85, 距酒店8km)', type: 'info' },
-        { agent: '应急重规划Agent', msg: '匹配: 798艺术区(半室内, 现代艺术权重0.62)', type: 'info' },
-        { agent: '应急重规划Agent', msg: '匹配: 全聚德烤鸭(室内午餐, 替代农家菜)', type: 'info' },
-        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '✓ Day3 调整为: 国家博物馆(8:00-12:00) → 全聚德(12:30) → 798艺术区(14:30) → 三里屯晚餐(18:00)', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '包车改道(费用增加¥80), 长城门票自动退款¥40, 总损失<¥50', type: 'ok' },
-      ],
-      newPlanModifier: (plan) => {
-        plan.days[2].title = '暴雨替代方案(已重规划)';
-        plan.days[2].nodes = [
-          { id: 'n10', time: '08:00', name: '酒店出发', type: '🚗 改道市区', deps: [] },
-          { id: 'n11-new', time: '08:30', name: '国家博物馆', type: '🏛️ 室内·世界级', deps: ['n10'] },
-          { id: 'n12-new', time: '12:30', name: '全聚德(前门店)', type: '🦆 午餐·老字号', deps: ['n11-new'] },
-          { id: 'n13-new', time: '14:30', name: '798艺术区', type: '🎨 半室内·现代艺术', deps: ['n12-new'] },
-          { id: 'n14-new', time: '18:00', name: '三里屯太古里', type: '🍽️ 晚餐', deps: ['n13-new'] },
-        ];
-        return plan;
-      },
-      conflicts: [
-        { dayId: 3, nodeId: 'n10', resolved: true },
-        { dayId: 3, nodeId: 'n11', resolved: true },
-        { dayId: 3, nodeId: 'n12', resolved: true },
-        { dayId: 3, nodeId: 'n13', resolved: true },
-        { dayId: 3, nodeId: 'n14', resolved: true },
-      ]
-    },
-    closed: {
-      name: '景点临时闭馆',
-      desc: 'Day 2 故宫紧急闭馆维修',
-      affectedNodes: ['n5','n6'],
-      chain: [
-        { agent: '应急重规划Agent', msg: '接收事件: 故宫博物院临时闭馆(建筑维修), 通知时间: 前日22:00', type: 'warn' },
-        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n5(故宫)为起点传播', type: 'info' },
-        { agent: '应急重规划Agent', msg: '第1层→ n6(景山公园): 失去前置节点, 时间可独立调整', type: 'warn' },
-        { agent: '应急重规划Agent', msg: '第2层→ n7(涮肉): 非直接依赖故宫, 仅需重新排布上午', type: 'info' },
-        { agent: '应急重规划Agent', msg: '闭环优化: 搜索同区域人文替代…', type: 'info' },
-        { agent: '应急重规划Agent', msg: '候选: 天坛(同为人文世界遗产, 权重0.88), 雍和宫(权重0.76)', type: 'info' },
-        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '✓ 故宫→天坛替代, 景山不变, 全链路维持, 损失¥0', type: 'ok' },
-      ],
-      newPlanModifier: (plan) => {
-        plan.days[1].title = '皇城中轴线(故宫闭馆·已重规划)';
-        plan.days[1].nodes[0] = { id: 'n5-new', time: '08:00', name: '天坛公园', type: '🏛️ 世界遗产·替代码', deps: [] };
-        return plan;
-      },
-      conflicts: [
-        { dayId: 2, nodeId: 'n5', resolved: true },
-        { dayId: 2, nodeId: 'n6', resolved: true },
-      ]
-    },
-    lost: {
-      name: '证件丢失',
-      desc: 'Day 1 机场发现身份证丢失',
-      affectedNodes: ['n1','n2'],
-      chain: [
-        { agent: '应急重规划Agent', msg: '接收事件: 身份证在机场遗失, 酒店入住受阻', type: 'warn' },
-        { agent: '应急重规划Agent', msg: 'BFS遍历: 以节点n2(酒店入住)为起点', type: 'info' },
-        { agent: '应急重规划Agent', msg: 'n2(酒店): 无身份证=无法办理入住, 需替代方案', type: 'warn' },
-        { agent: '应急重规划Agent', msg: 'n1(航班): 电子登机牌可用, 不受影响', type: 'info' },
-        { agent: '应急重规划Agent', msg: '闭环优化: 搜索合规替代方案…', type: 'info' },
-        { agent: '应急重规划Agent', msg: '方案A: 机场派出所开具临时身份证明(耗时约40min)', type: 'info' },
-        { agent: '应急重规划Agent', msg: '方案B: 护照备用(如携带) → 可立即入住', type: 'info' },
-        { agent: '议价Agent', msg: '生成话术: "…正在机场派出所办理临时证明, 预计18:30到达, 请保留房间"', type: 'info' },
-        { agent: '应急重规划Agent', msg: '━━━ 最终方案 ━━━', type: 'ok' },
-        { agent: '应急重规划Agent', msg: '✓ 方案A+B并行: 派出所开证明+联系酒店延迟入住, 总延迟1h, 损失¥0', type: 'ok' },
-      ],
-      newPlanModifier: (plan) => {
-        plan.days[0].title = '抵达北京 · 证件补办(已重规划)';
-        plan.days[0].nodes.splice(1, 0, { id: 'n1b', time: '14:40', name: '机场派出所', type: '🪪 临时身份证明', deps: ['n1'] });
-        plan.days[0].nodes[2].time = '15:30';
-        plan.days[0].nodes[2].deps = ['n1b'];
-        plan.days[0].nodes[3].time = '17:00';
-        plan.days[0].nodes[4].time = '18:30';
-        return plan;
-      },
-      conflicts: [
-        { dayId: 1, nodeId: 'n1', resolved: false },
-        { dayId: 1, nodeId: 'n2', resolved: true },
-      ]
-    }
-  };
-
-  const scenario = scenarios[type];
-
-  // 逐步播放推理日志
-  for (let i = 0; i < scenario.chain.length; i++) {
-    const entry = scenario.chain[i];
-    await sleep(350 + Math.random() * 400);
-    log(entry.agent, entry.msg, entry.type);
+async function triggerCustomEmergency() {
+  const desc = document.getElementById('customEmergency').value.trim();
+  if (!desc) {
+    showToast('请先描述突发事件', 'warning');
+    return;
+  }
+  if (!wsReady) {
+    showToast('后端未连接，请稍后重试', 'error');
+    return;
   }
 
-  // 更新方案
-  const newPlan = scenario.newPlanModifier(JSON.parse(JSON.stringify(originalPlan)));
+  switchTab('emergency');
 
-  // 显示受影响行程
-  const affectedCard = document.getElementById('affectedItineraryCard');
-  affectedCard.style.display = 'block';
-  renderItinerary('affectedItinerary', newPlan, scenario.conflicts);
+  const logContainer = document.getElementById('logContainer');
+  logContainer.innerHTML = '';
+  document.getElementById('compareCard').style.display = 'none';
+  document.getElementById('affectedItineraryCard').style.display = 'none';
 
-  // 对比视图
-  const compareCard = document.getElementById('compareCard');
-  compareCard.style.display = 'block';
-  const compareGrid = document.getElementById('compareGrid');
-  compareGrid.innerHTML = `
-    <div class="compare-col old">
-      <h4>❌ 原始方案</h4>
-      ${scenario.affectedNodes.map(nid => {
-        let found = null;
-        originalPlan.days.forEach(d => d.nodes.forEach(n => { if (n.id === nid) found = n; }));
-        return found ? `<div class="compare-item"><span class="del">${found.time} ${found.name}</span></div>` : '';
-      }).join('')}
-    </div>
-    <div class="compare-col new">
-      <h4>✅ 重规划方案</h4>
-      ${scenario.affectedNodes.map(nid => {
-        let found = null;
-        newPlan.days.forEach(d => d.nodes.forEach(n => { if (n.id === nid || n.id === nid + '-new') found = n; }));
-        return found ? `<div class="compare-item"><span class="add">${found.time} ${found.name}</span></div>` : '';
-      }).join('')}
-    </div>
-  `;
+  totalTokens = 0;
+  document.getElementById('tokenCount').textContent = '0';
 
-  const elapsed = performance.now() - start;
-  document.getElementById('inferTime').textContent = elapsed.toFixed(0) + 'ms';
-  document.getElementById('tokenCount').textContent = totalTokens.toLocaleString();
+  ws.send(JSON.stringify({
+    type: 'trigger_emergency',
+    data: { scenario: 'custom', custom_desc: desc }
+  }));
+}
 
-  setAgentState(4, 'active', `重规划完成: 耗时${(elapsed/1000).toFixed(1)}s, 方案可行率92%`);
-  showToast(`应急重规划完成！${scenario.name} — 耗时 ${(elapsed/1000).toFixed(1)}秒`, 'success');
+function renderEmergencyResult(data) {
+  const newPlan = data.new_plan || data.newPlan;
+  const conflicts = data.conflicts || [];
+
+  if (newPlan) {
+    const affectedCard = document.getElementById('affectedItineraryCard');
+    affectedCard.style.display = 'block';
+    renderItinerary('affectedItinerary', newPlan, conflicts);
+  }
+
+  if (newPlan && currentPlan.days && currentPlan.days.length > 0) {
+    const compareCard = document.getElementById('compareCard');
+    compareCard.style.display = 'block';
+    const compareGrid = document.getElementById('compareGrid');
+
+    let oldItems = '';
+    let newItems = '';
+    currentPlan.days.forEach((day, di) => {
+      day.nodes.forEach(n => {
+        oldItems += `<div class="compare-item"><span class="del">${n.time} ${n.name}</span></div>`;
+      });
+    });
+    newPlan.days.forEach((day, di) => {
+      day.nodes.forEach(n => {
+        newItems += `<div class="compare-item"><span class="add">${n.time} ${n.name}</span></div>`;
+      });
+    });
+
+    compareGrid.innerHTML = `
+      <div class="compare-col old">
+        <h4>❌ 原始方案</h4>
+        ${oldItems}
+      </div>
+      <div class="compare-col new">
+        <h4>✅ 重规划方案</h4>
+        ${newItems}
+      </div>
+    `;
+  }
+
+  // 同步更新行程规划模块的拓扑图
+  if (newPlan && newPlan.days) {
+    currentPlan = newPlan;
+    renderItinerary('itinerary', currentPlan, conflicts);
+  }
+
+  showToast('应急重规划完成！', 'success');
 }
 
 // ============================================================
@@ -1001,13 +1673,18 @@ async function triggerEmergency(type) {
 // ============================================================
 
 function refreshPrices() {
+  if (!wsReady) {
+    showToast('后端未连接，请稍后重试', 'error');
+    return;
+  }
+  ws.send(JSON.stringify({
+    type: 'refresh_prices',
+    data: { destination: document.getElementById('dest').value }
+  }));
+}
+
+function renderPriceCardsFromData(items) {
   const grid = document.getElementById('priceGrid');
-  const items = [
-    { title: '机票 北京→目的地', price: '¥' + (1200 + Math.floor(Math.random() * 200)), trend: Math.random() > 0.5 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 100) },
-    { title: '北京饭店 · 豪华大床房', price: '¥' + (820 + Math.floor(Math.random() * 120)) + '/晚', trend: Math.random() > 0.6 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 80) },
-    { title: '故宫门票 · 含珍宝馆', price: '¥60', trend: 'up', change: '仅剩23张' },
-    { title: '八达岭长城 · 直通车', price: '¥' + (150 + Math.floor(Math.random() * 60)), trend: Math.random() > 0.7 ? 'down' : 'up', change: (Math.random() > 0.5 ? '-¥' : '+¥') + Math.floor(Math.random() * 40) },
-  ];
   grid.innerHTML = items.map(i => `
     <div class="price-card">
       <div class="price-title">${i.title}</div>
@@ -1058,6 +1735,7 @@ function showToast(msg, type = 'info') {
 
 function init() {
   renderItinerary('itinerary', currentPlan);
+  initDragAndDrop();
   // 初始化应急Tab的行程占位
   document.getElementById('affectedItinerary').innerHTML = '<div style="color:#999;padding:20px;text-align:center;">点击突发事件按钮查看重规划结果</div>';
 }
