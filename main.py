@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from ws_manager import ConnectionManager
 from orchestrator import TravelOrchestrator
 from llm_client import LLMClient
@@ -13,6 +14,8 @@ orchestrator = TravelOrchestrator(llm)
 current_plan = {"days": []}
 
 init_db()
+
+app.mount("/static", StaticFiles(directory=r"C:\Users\21171\ClaudeCodeProjects\旅行管家"), name="static")
 
 
 @app.get("/")
